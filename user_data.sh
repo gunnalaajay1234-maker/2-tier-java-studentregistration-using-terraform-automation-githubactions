@@ -3,18 +3,20 @@ set -e
 
 sudo apt update -y
 
-# Install Java + Maven
-sudo apt install openjdk-17-jdk -y
-sudo apt install maven -y
-sudo apt install git -y
+# Install Java + Maven + Git
+sudo apt install openjdk-17-jdk maven git -y
 
-# Clone your repo
+# Go to home
 cd /home/ubuntu
+
+# Clone repo
 git clone https://github.com/gunnalaajay1234-maker/2-tier-java-studentregistration-using-terraform-automation-githubactions.git
 
+# Enter repo folder (NOT URL)
+cd 2-tier-java-studentregistration-using-terraform-automation-githubactions/app
+
 # Build app
-cd https://github.com/gunnalaajay1234-maker/2-tier-java-studentregistration-using-terraform-automation-githubactions.git/app
 mvn clean package
 
 # Run app
-java -jar target/*.jar > app.log 2>&1 &
+nohup java -jar target/*.jar > app.log 2>&1 &
