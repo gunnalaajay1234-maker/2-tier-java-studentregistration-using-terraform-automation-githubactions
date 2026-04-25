@@ -1,4 +1,4 @@
-name: Terraform AWS Deploy
+name: Terraform + Java Deploy
 
 on:
   push:
@@ -6,29 +6,56 @@ on:
       - main
 
 jobs:
-  terraform:
-    name: Terraform Apply
+  deploy:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: terraform
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+    # 1. Checkout Code
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: ap-south-1
+    # 2. Setup Java
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
 
-      - name: Terraform Init
-        run: terraform init
+    # 3. Build Java App
+    - name: Build Application
+      run: |
+        cd ../app
+        mvn clean package
 
-      - name: Terraform Plan
-        run: terraform plan
+    # 4. Setup Terraform
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
+    # 5. Configure AWS Credentials
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        region: ${{ secrets.AWS_REGION }}
+
+    # 6. Terraform Init
+    - name: Terraform Init
+      run: terraform init
+
+    # 7. Terraform Validate
+    - name: Terraform Validate
+      run: terraform validate
+
+    # 8. Terraform Plan
+    - name: Terraform Plan
+      run: terraform plan
+
+    # 9. Terraform Apply (AUTO DEPLOY)
+    - name: Terraform Apply
+      run: terraform apply -auto-approve
