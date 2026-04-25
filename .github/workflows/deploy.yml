@@ -10,46 +10,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # -----------------------
-    # 1. Checkout Code
-    # -----------------------
+    # 1. Checkout
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    # -----------------------
     # 2. Setup Java
-    # -----------------------
     - name: Set up Java
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    # -----------------------
-    # 3. Build Java App
-    # -----------------------
+    # 3. Build App
     - name: Build App
       working-directory: app
       run: mvn clean package
 
-    # -----------------------
-    # 4. Upload JAR (IMPORTANT)
-    # -----------------------
+    # 4. Upload JAR
     - name: Upload JAR
       uses: actions/upload-artifact@v4
       with:
         name: app-jar
         path: app/target/*.jar
 
-    # -----------------------
     # 5. Setup Terraform
-    # -----------------------
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
-    # -----------------------
     # 6. Configure AWS
-    # -----------------------
     - name: Configure AWS
       uses: aws-actions/configure-aws-credentials@v2
       with:
@@ -57,64 +45,54 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-south-1
 
-    # -----------------------
     # 7. Terraform Init
-    # -----------------------
     - name: Terraform Init
       working-directory: terraform
       run: terraform init -reconfigure
 
-    # -----------------------
     # 8. Terraform Validate
-    # -----------------------
     - name: Terraform Validate
       working-directory: terraform
       run: terraform validate
 
-    # -----------------------
     # 9. Terraform Plan
-    # -----------------------
     - name: Terraform Plan
       working-directory: terraform
       run: terraform plan
 
-    # -----------------------
     # 10. Terraform Apply
-    # -----------------------
     - name: Terraform Apply
       working-directory: terraform
       run: terraform apply -auto-approve
 
-    # -----------------------
-    # 11. Get EC2 Public IP
-    # -----------------------
+    # 11. Get EC2 IP
     - name: Get EC2 IP
       working-directory: terraform
       run: echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
 
-    # -----------------------
     # 12. Download JAR
-    # -----------------------
     - name: Download JAR
       uses: actions/download-artifact@v4
       with:
         name: app-jar
 
-    # -----------------------
-    # 13. Deploy App to EC2
-    # -----------------------
+    # 13. Debug Secret (TEMP)
+    - name: Debug Secret
+      run: |
+        echo "${{ secrets.EC2_SSH_KEY }}" | wc -c
+
+    # 14. Deploy to EC2
     - name: Deploy to EC2
       run: |
-        echo "${{ secrets.AJAYKEY }}" > AJAYKEY.pem
-        chmod 600 AJAYKEY.pem
+        echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+        chmod 600 key.pem
+        sed -i 's/\r$//' key.pem
 
-        scp -o StrictHostKeyChecking=no -i AJAYKEY.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app/app.jar
+        ssh-keygen -y -f key.pem > /dev/null
 
-        ssh -o StrictHostKeyChecking=no -i AJAYKEY.pem ubuntu@$EC2_IP << 'EOF'
+        scp -o StrictHostKeyChecking=no -i key.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app/app.jar
+
+        ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << 'EOF'
           pkill java || true
           nohup java -jar /home/ubuntu/app/app.jar > app.log 2>&1 &
         EOF
-
-        - name: Debug Secret
-  run: |
-    echo "${{ secrets.EC2_SSH_KEY }}" | wc -c
