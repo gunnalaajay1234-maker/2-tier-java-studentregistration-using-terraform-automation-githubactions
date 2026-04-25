@@ -114,3 +114,7 @@ jobs:
           pkill java || true
           nohup java -jar /home/ubuntu/app/app.jar > app.log 2>&1 &
         EOF
+
+        - name: Debug Secret
+  run: |
+    echo "${{ secrets.EC2_SSH_KEY }}" | wc -c
