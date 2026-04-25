@@ -5,16 +5,10 @@ resource "aws_instance" "app" {
   subnet_id              = aws_subnet.app_subnet.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   key_name               = "AJAYKEY"
+  user_data = file("user_data.sh")
 
   tags = {
     Name = var.ec2_name
-  }
-
-  connection {
-    type        = "ssh"
-    user        = "ubuntu"
-    private_key = file("AJAYKEY.pem")
-    host        = self.public_ip
   }
 
   provisioner "remote-exec" {
