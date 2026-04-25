@@ -105,7 +105,7 @@ jobs:
     # -----------------------
     - name: Deploy to EC2
       run: |
-        echo "${{ secrets.EC2_SSH_KEY }}" > AJAYKEY.pem
+        echo "${{ secrets.AJAYKEY }}" > AJAYKEY.pem
         chmod 600 AJAYKEY.pem
 
         scp -o StrictHostKeyChecking=no -i AJAYKEY.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app/app.jar
