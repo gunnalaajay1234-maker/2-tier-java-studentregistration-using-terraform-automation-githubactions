@@ -11,13 +11,13 @@ jobs:
 
     steps:
     # -----------------------
-    # Checkout Code
+    # 1. Checkout Code
     # -----------------------
     - name: Checkout Code
       uses: actions/checkout@v3
 
     # -----------------------
-    # Build Java App
+    # 2. Setup Java
     # -----------------------
     - name: Set up Java
       uses: actions/setup-java@v3
@@ -25,18 +25,21 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
+    # -----------------------
+    # 3. Build Java App
+    # -----------------------
     - name: Build App
-      working-directory: java   # ✅ FIXED
+      working-directory: app
       run: mvn clean package
 
     # -----------------------
-    # Setup Terraform
+    # 4. Setup Terraform
     # -----------------------
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
     # -----------------------
-    # Configure AWS
+    # 5. Configure AWS Credentials
     # -----------------------
     - name: Configure AWS
       uses: aws-actions/configure-aws-credentials@v2
@@ -46,20 +49,29 @@ jobs:
         aws-region: ap-south-1
 
     # -----------------------
-    # Terraform Commands
+    # 6. Terraform Init
     # -----------------------
     - name: Terraform Init
       working-directory: terraform
-      run: terraform init -reconfigure   # ✅ important
+      run: terraform init -reconfigure
 
+    # -----------------------
+    # 7. Terraform Validate
+    # -----------------------
     - name: Terraform Validate
       working-directory: terraform
       run: terraform validate
 
+    # -----------------------
+    # 8. Terraform Plan
+    # -----------------------
     - name: Terraform Plan
       working-directory: terraform
       run: terraform plan
 
+    # -----------------------
+    # 9. Terraform Apply
+    # -----------------------
     - name: Terraform Apply
       working-directory: terraform
       run: terraform apply -auto-approve
