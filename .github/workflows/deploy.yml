@@ -81,18 +81,16 @@ jobs:
       run: |
         echo "${{ secrets.EC2_SSH_KEY }}" | wc -c
 
-    # 14. Deploy to EC2
     - name: Deploy to EC2
-      run: |
-        echo "${{ secrets.EC2_SSH_KEY }}" > AJAYKEY.pem
-        chmod 600 ajay-new-key.pem
-        sed -i 's/\r$//' ajay-new-key.pem
+  run: |
+    echo "${{ secrets.AJAYKEY_BASE64 }}" | base64 -d > key.pem
+    chmod 600 key.pem
 
-        ssh-keygen -y -f ajay-new-key.pem > /dev/null
+    ssh-keygen -y -f key.pem > /dev/null
 
-        scp -o StrictHostKeyChecking=no -i ajay-new-key.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app/app.jar
+    scp -o StrictHostKeyChecking=no -i key.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app.jar
 
-        ssh -o StrictHostKeyChecking=no -i ajay-new-key.pem ubuntu@$EC2_IP << 'EOF'
-          pkill java || true
-          nohup java -jar /home/ubuntu/app/app.jar > app.log 2>&1 &
-        EOF
+    ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << EOF
+      pkill java || true
+      nohup java -jar /home/ubuntu/app.jar > app.log 2>&1 &
+    EOF
