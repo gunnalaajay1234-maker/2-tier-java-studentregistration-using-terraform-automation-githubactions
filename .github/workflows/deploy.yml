@@ -105,12 +105,12 @@ jobs:
     # -----------------------
     - name: Deploy to EC2
       run: |
-        echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
-        chmod 600 key.pem
+        echo "${{ secrets.EC2_SSH_KEY }}" > AJAYKEY.pem
+        chmod 600 AJAYKEY.pem
 
-        scp -o StrictHostKeyChecking=no -i key.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app/app.jar
+        scp -o StrictHostKeyChecking=no -i AJAYKEY.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app/app.jar
 
-        ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << 'EOF'
+        ssh -o StrictHostKeyChecking=no -i AJAYKEY.pem ubuntu@$EC2_IP << 'EOF'
           pkill java || true
           nohup java -jar /home/ubuntu/app/app.jar > app.log 2>&1 &
         EOF
