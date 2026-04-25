@@ -3,7 +3,7 @@ resource "aws_instance" "app" {
   instance_type          = "t3.small"
   subnet_id              = aws_subnet.app_subnet.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  key_name               = "AJAYKEY"
+  key_name               = "ajay-new-key"
 
   user_data = templatefile("${path.module}/user_data.sh", {
     db_host     = aws_db_instance.db.address

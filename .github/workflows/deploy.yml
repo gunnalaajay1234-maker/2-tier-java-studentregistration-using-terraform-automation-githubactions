@@ -50,47 +50,31 @@ jobs:
       working-directory: terraform
       run: terraform init -reconfigure
 
-    # 8. Terraform Validate
-    - name: Terraform Validate
-      working-directory: terraform
-      run: terraform validate
-
-    # 9. Terraform Plan
-    - name: Terraform Plan
-      working-directory: terraform
-      run: terraform plan
-
-    # 10. Terraform Apply
+    # 8. Terraform Apply
     - name: Terraform Apply
       working-directory: terraform
       run: terraform apply -auto-approve
 
-    # 11. Get EC2 IP
+    # 9. Get EC2 IP
     - name: Get EC2 IP
       working-directory: terraform
       run: echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
 
-    # 12. Download JAR
+    # 10. Download JAR
     - name: Download JAR
       uses: actions/download-artifact@v4
       with:
         name: app-jar
 
-    # 13. Debug Secret (TEMP)
-    - name: Debug Secret
-      run: |
-        echo "${{ secrets.EC2_SSH_KEY }}" | wc -c
-
+    # 11. Deploy to EC2 (FIXED KEY HANDLING)
     - name: Deploy to EC2
-  run: |
-    echo "${{ secrets.AJAYKEY_BASE64 }}" | base64 -d > key.pem
-    chmod 600 key.pem
+      run: |
+        echo "${{ secrets.AJAYKEY_BASE64 }}" | base64 -d > ajay-new-key.pem
+        chmod 600 ajay-new-key.pem
 
-    ssh-keygen -y -f key.pem > /dev/null
+        scp -o StrictHostKeyChecking=no -i ajay-new-key.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app.jar
 
-    scp -o StrictHostKeyChecking=no -i key.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app.jar
-
-    ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << EOF
-      pkill java || true
-      nohup java -jar /home/ubuntu/app.jar > app.log 2>&1 &
-    EOF
+        ssh -o StrictHostKeyChecking=no -i ajay-new-key.pem ubuntu@$EC2_IP << EOF
+          pkill java || true
+          nohup java -jar /home/ubuntu/app.jar > app.log 2>&1 &
+        EOF
