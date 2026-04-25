@@ -1,4 +1,4 @@
-name: Deploy Infra
+name: Deploy Infra + App
 
 on:
   push:
@@ -33,13 +33,22 @@ jobs:
       run: mvn clean package
 
     # -----------------------
-    # 4. Setup Terraform
+    # 4. Upload JAR (IMPORTANT)
+    # -----------------------
+    - name: Upload JAR
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-jar
+        path: app/target/*.jar
+
+    # -----------------------
+    # 5. Setup Terraform
     # -----------------------
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
     # -----------------------
-    # 5. Configure AWS Credentials
+    # 6. Configure AWS
     # -----------------------
     - name: Configure AWS
       uses: aws-actions/configure-aws-credentials@v2
@@ -49,29 +58,59 @@ jobs:
         aws-region: ap-south-1
 
     # -----------------------
-    # 6. Terraform Init
+    # 7. Terraform Init
     # -----------------------
     - name: Terraform Init
       working-directory: terraform
       run: terraform init -reconfigure
 
     # -----------------------
-    # 7. Terraform Validate
+    # 8. Terraform Validate
     # -----------------------
     - name: Terraform Validate
       working-directory: terraform
       run: terraform validate
 
     # -----------------------
-    # 8. Terraform Plan
+    # 9. Terraform Plan
     # -----------------------
     - name: Terraform Plan
       working-directory: terraform
       run: terraform plan
 
     # -----------------------
-    # 9. Terraform Apply
+    # 10. Terraform Apply
     # -----------------------
     - name: Terraform Apply
       working-directory: terraform
       run: terraform apply -auto-approve
+
+    # -----------------------
+    # 11. Get EC2 Public IP
+    # -----------------------
+    - name: Get EC2 IP
+      working-directory: terraform
+      run: echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
+
+    # -----------------------
+    # 12. Download JAR
+    # -----------------------
+    - name: Download JAR
+      uses: actions/download-artifact@v4
+      with:
+        name: app-jar
+
+    # -----------------------
+    # 13. Deploy App to EC2
+    # -----------------------
+    - name: Deploy to EC2
+      run: |
+        echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+        chmod 600 key.pem
+
+        scp -o StrictHostKeyChecking=no -i key.pem *.jar ubuntu@$EC2_IP:/home/ubuntu/app/app.jar
+
+        ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << 'EOF'
+          pkill java || true
+          nohup java -jar /home/ubuntu/app/app.jar > app.log 2>&1 &
+        EOF
