@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # -----------------------
+    # Checkout Code
+    # -----------------------
     - name: Checkout Code
       uses: actions/checkout@v3
 
@@ -23,15 +26,18 @@ jobs:
         java-version: '17'
 
     - name: Build App
-      working-directory: app
+      working-directory: java   # ✅ FIXED
       run: mvn clean package
 
     # -----------------------
-    # Terraform Deployment
+    # Setup Terraform
     # -----------------------
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
+    # -----------------------
+    # Configure AWS
+    # -----------------------
     - name: Configure AWS
       uses: aws-actions/configure-aws-credentials@v2
       with:
@@ -39,9 +45,12 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-south-1
 
+    # -----------------------
+    # Terraform Commands
+    # -----------------------
     - name: Terraform Init
       working-directory: terraform
-      run: terraform init
+      run: terraform init -reconfigure   # ✅ important
 
     - name: Terraform Validate
       working-directory: terraform
